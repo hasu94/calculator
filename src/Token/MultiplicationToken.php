@@ -4,15 +4,15 @@ namespace Hasu94\Calculator\Token;
 class MultiplicationToken extends AbstractBinaryToken
 {
 
-    public static function create(array $tokens)
+    public static function create(array $tokens): AbstractBinaryToken
     {
-        if (count($token) === 1) {
+        if (count($tokens) === 1) {
             return new static($tokens);
         }
         
         return parent::create($tokens);
     }
-    
+
     /**
      *
      * {@inheritdoc}

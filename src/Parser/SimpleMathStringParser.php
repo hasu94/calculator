@@ -2,78 +2,61 @@
 namespace Hasu94\Calculator\Parser;
 
 use Hasu94\Calculator\Token\TokenInterface;
-use Hasu94\Calculator\Token\MultiplicationToken;
-use Hasu94\Calculator\Token\Factory\SingleValueTokenArrayFactory;
-use Hasu94\Calculator\Token\DivisionToken;
 use Hasu94\Calculator\Token\AdditionToken;
 use Hasu94\Calculator\Token\SubtractionToken;
-use Hasu94\Calculator\Token\SingleValueToken;
 
-class SimpleMathStringParser
+class SimpleMathStringParser implements MathStringParserInterface
 {
+	/**
+     *
+     * @var AddendParser
+     */
+    private $addendParser;
 
     /**
      *
-     * @var SingleValueTokenArrayFactory
+     * @var MathSignExploder
      */
-    private $singleValueTokenArrayFactory;
+    private $mathSignExploder;
 
-    public function __construct(
-        SingleValueTokenArrayFactory $singleValueTokenArrayFactory)
+    public function __construct(AddendParser $addendParser, MathSignExploder $mathSignExploder)
     {
-        $this->singleValueTokenArrayFactory = $singleValueTokenArrayFactory;
+        $this->addendParser = $addendParser;
+        $this->mathSignExploder = $mathSignExploder;
     }
 
     public function parse(string $string): TokenInterface
     {
-        $cleanedFromSpaces = str_replace(' ', $string);
+        $cleanedFromSpaces = str_replace(' ', '', $string);
         
-        list ($addendList, $subtrahendList) = $this->extractAddendSubtrahendList(
-            $cleanedFromSpaces);
+        list ($addendList, $subtrahendList) = $this->mathSignExploder->extractTermsByTwoOperations($cleanedFromSpaces, '+', '-');
         
         $addendTokenList = $this->parseAddendList($addendList);
+        $subtrahendTokenList = [];
         
         if (empty($subtrahendList)) {
-            $subtrahendTokenList = $this->parseAddendList($subtrahendList);
+            $addendTokenList = $this->parseAddendList($subtrahendList);
             
             return AdditionToken::create($addendTokenList);
         }
         
-        return SubtractionToken::create(
-            [
-                AdditionToken::create($addendTokenList),
-                AdditionToken::create($subtrahendTokenList)
-            ]);
+        $subtrahendTokenList = $this->parseAddendList($subtrahendList);
+        
+        return SubtractionToken::create([
+            AdditionToken::create($addendTokenList),
+            AdditionToken::create($subtrahendTokenList)
+        ]);
     }
 
-    private function extractAddendSubtrahendList(string $string)
-    {
-        // /* $addendList = explode('+', $string);
-        // $subtrahendList = [];
-        
-        // foreach ($addendList as &$addend) {
-        // $explodedBySubtraction = explode('-', $addend);
-        // $addend = array_shift($explodedBySubtraction);
-        // $subtrahendList = array_merge($subtrahendList,
-        // $explodedBySubtraction);
-        // }
-        
-        // return [$addendList, $subtrahendList]; */
-        return $this->extractTermsByTwoOperations('+', '-');
-    }
-
-    private function extractTermsByTwoOperations(string $directOperation, 
-        string $reverseOperation)
+    private function extractTermsByTwoOperations(string $string, string $directOperation, string $reverseOperation)
     {
         $directOperationTermList = explode($directOperation, $string);
         $reverseOperationTermList = [];
         
         foreach ($directOperationTermList as &$directOperationTerm) {
-            $explodedByReverseOperation = explode($reverseOperation, 
-                $directOperationTerm);
+            $explodedByReverseOperation = explode($reverseOperation, $directOperationTerm);
             $directOperationTerm = array_shift($explodedByReverseOperation);
-            $reverseOperationTermList = array_merge($reverseOperationTermList, 
-                $explodedByReverseOperation);
+            $reverseOperationTermList = array_merge($reverseOperationTermList, $explodedByReverseOperation);
         }
         
         return [
@@ -82,44 +65,19 @@ class SimpleMathStringParser
         ];
     }
 
-    private function parseAddendList(array $addendList)
+    /**
+     *
+     * @param array $addendList            
+     * @return TokenInterface[]
+     */
+    private function parseAddendList(array $addendList): array
     {
         $addendTokenList = [];
         
         foreach ($addendList as $addend) {
-            $addendTokenList[] = $this->parseSingleAddend($addend);
+            $addendTokenList[] = $this->addendParser->parseSingleAddend($addend);
         }
         
         return $addendTokenList;
-    }
-
-    private function parseSingleAddend(string $addend): TokenInterface
-    {
-        /* if (strpos($addend, '*') !== false || strpos($addend, '/') !== false) {
-            return $this->parseMultiplication($addend);
-        }
-        
-        return SingleValueToken::create(floatvar($addend)); */
-        
-        return $this->parseMultiplication($addend);
-    }
-
-    private function parseMultiplication(string $multiplicationExpr): TokenInterface
-    {
-        list ($multiplierList, $divisorList) = $this->extractTermsByTwoOperations(
-            '*', '/');
-        
-        $multiplicationPartToken = MultiplicationToken::create(
-            $this->singleValueTokenArrayFactory->create($multiplierList));
-        if (empty($divisorList)) {
-            return $multiplicationPartToken;
-        }
-        $divisionPartToken = $this->singleValueTokenArrayFactory->create(
-            $divisorList);
-        
-        return DivisionToken::create(
-            array_merge([
-                $multiplicationPartToken
-            ], $divisionPartToken));
     }
 }

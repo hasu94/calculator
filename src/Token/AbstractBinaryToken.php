@@ -25,8 +25,6 @@ abstract class AbstractBinaryToken implements TokenInterface
 
     public static function create(array $tokens): AbstractBinaryToken
     {
-        echo sprintf("{{/%d/}}", static::MIN_TOKENS_COUNT);
-        
         if (count($tokens) < static::MIN_TOKENS_COUNT) {
             throw new InvalidTokenArrayException(sprintf('There should be %d or more arguments to create a %s', static::MIN_TOKENS_COUNT, static::class));
         }

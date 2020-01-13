@@ -3,6 +3,7 @@ namespace Hasu94\Calculator\Token;
 
 class AdditionToken extends AbstractBinaryToken
 {
+
     public static function create(array $tokens): AbstractBinaryToken
     {
         if (count($tokens) < static::MIN_TOKENS_COUNT) {
